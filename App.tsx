@@ -25,6 +25,15 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
+import {
+  mediaDevices,
+  RTCPeerConnection,
+  RTCView,
+  RTCIceCandidate,
+  RTCSessionDescription,
+  MediaStreamTrack
+} from 'react-native-webrtc';
+
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
@@ -56,6 +65,14 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 }
 
 function App(): React.JSX.Element {
+
+  // mediaDevices.getUserMedia({
+  //   audio: true,
+  //   video: true
+  // }).then(stream =>{
+  //   console.log(stream);
+    
+  // })
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
