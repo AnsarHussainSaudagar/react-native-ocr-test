@@ -5,9 +5,10 @@
  * @format
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -33,6 +34,9 @@ import {
   RTCSessionDescription,
   MediaStreamTrack
 } from 'react-native-webrtc';
+
+import notifee, { AndroidImportance } from '@notifee/react-native';
+
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -64,7 +68,23 @@ function Section({children, title}: SectionProps): React.JSX.Element {
   );
 }
 
+const viewstyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  video: {
+    width: 200,
+    height: 200
+  },
+});
+
 function App(): React.JSX.Element {
+
+  const [localStream, setLocalStream] = useState(null);
+  const [startStream, setStartStream] = useState(0);
 
   // mediaDevices.getUserMedia({
   //   audio: true,
@@ -73,11 +93,72 @@ function App(): React.JSX.Element {
   //   console.log(stream);
     
   // })
+  useEffect(() => {
+
+    const startLocalStream = async () => {
+      try {
+        const channelId = await notifee.createChannel( {
+          id: 'screen_capture',
+          name: 'Screen Capture',
+          lights: false,
+          vibration: false,
+          importance: AndroidImportance.DEFAULT
+        } );
+      
+        await notifee.displayNotification( {
+          title: 'Screen Capture',
+          body: 'This notification will be here until you stop capturing.',
+          android: {
+            channelId,
+            asForegroundService: true
+          }
+        } );
+      } catch( err ) {
+        // Handle Error
+        console.log(err);
+      };
+
+      try {
+        const stream : any = await mediaDevices.getDisplayMedia({ audio: true });
+        
+        setLocalStream(stream);
+
+      } catch (error) {
+        console.error('Error accessing media devices:', error);
+      }
+    };
+
+    startLocalStream();
+
+    async function stopFService() {
+      try {
+        // console.log("check stop");
+        
+        await notifee.stopForegroundService();
+      } catch( err ) {
+        // Handle Error
+      };
+    }
+
+    // Clean up stream when component is unmounted
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach((track :any )=> track.stop());
+      }
+
+      stopFService();
+    };
+  }, [startStream])
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+
+  const onClickStart = () =>{
+    setStartStream(startStream + 1);
+
+  }
 
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -94,9 +175,19 @@ function App(): React.JSX.Element {
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
           <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
+            <Button title='Start' onPress={onClickStart}></Button>
           </Section>
+          {/* <video src=""></video> */}
+          {/* <View style={viewstyles.container}> */}
+            {localStream && (
+              <RTCView
+                streamURL={localStream.toURL()} // Converts stream to a URL for RTCView
+                style={viewstyles.video}
+                objectFit="cover"
+                // mirror={true} // Set to false if you don't want a mirrored view
+              />
+            )}
+          {/* </View> */}
           <Section title="See Your Changes">
             <ReloadInstructions />
           </Section>
